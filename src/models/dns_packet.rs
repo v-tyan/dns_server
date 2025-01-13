@@ -7,11 +7,11 @@ use crate::utils::byte_packet_buffer::BytePacketBuffer;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DnsPacket {
-    header: DnsHeader,
-    questions: Vec<DnsQuestion>,
-    answers: Vec<DnsRecord>,
-    authorities: Vec<DnsRecord>,
-    additionals: Vec<DnsRecord>,
+    pub header: DnsHeader,
+    pub questions: Vec<DnsQuestion>,
+    pub answers: Vec<DnsRecord>,
+    pub authorities: Vec<DnsRecord>,
+    pub additionals: Vec<DnsRecord>,
 }
 
 impl DnsPacket {
@@ -53,5 +53,23 @@ impl DnsPacket {
         }
 
         Ok(dns_packet)
+    }
+
+    pub fn to_buffer(&mut self, buffer: &mut BytePacketBuffer) -> Result<()> {
+        self.header.write(buffer)?;
+        for record in &self.questions {
+            record.write(buffer)?;
+        }
+        for record in &self.answers {
+            record.write(buffer)?;
+        }
+        for record in &self.authorities {
+            record.write(buffer)?;
+        }
+        for record in &self.additionals {
+            record.write(buffer)?;
+        }
+
+        Ok(())
     }
 }

@@ -36,6 +36,19 @@ impl BytePacketBuffer {
         Ok(self.buf[pos])
     }
 
+    pub fn set_u8(&mut self, pos: usize, val: u8) -> Result<()> {
+        self.buf[pos] = val;
+
+        Ok(())
+    }
+
+    pub fn set_u16(&mut self, pos: usize, val: u16) -> Result<()> {
+        self.set_u8(pos, (val >> 8) as u8)?;
+        self.set_u8(pos + 1, (val & 0xFF) as u8)?;
+
+        Ok(())
+    }
+
     pub fn get_range(&mut self, start: usize, len: usize) -> Result<&[u8]> {
         if self.pos >= 512 {
             return Err("Buffer overflow".into());
@@ -72,6 +85,32 @@ impl BytePacketBuffer {
             | (self.read_u8()? as u32);
 
         Ok(res)
+    }
+
+    pub fn write_u8(&mut self, val: u8) -> Result<()> {
+        if self.pos >= 512 {
+            return Err("Buffer overflow".into());
+        }
+        self.buf[self.pos] = val;
+        self.pos += 1;
+
+        Ok(())
+    }
+
+    pub fn write_u16(&mut self, val: u16) -> Result<()> {
+        self.write_u8((val >> 8) as u8)?;
+        self.write_u8((val & 0xFF) as u8)?;
+
+        Ok(())
+    }
+
+    pub fn write_u32(&mut self, val: u32) -> Result<()> {
+        self.write_u8((val >> 24) as u8)?;
+        self.write_u8((val >> 16) as u8)?;
+        self.write_u8((val >> 8) as u8)?;
+        self.write_u8((val & 0xFF) as u8)?;
+
+        Ok(())
     }
 
     pub fn read_name(&mut self) -> Result<String> {
@@ -126,5 +165,23 @@ impl BytePacketBuffer {
         }
 
         Ok(domain)
+    }
+
+    pub fn write_qname(&mut self, qname: &String) -> Result<()> {
+        for label in qname.split('.') {
+            let len = label.len();
+            if (len > 63) {
+                return Err("Label max length of 63 exeeded".into());
+            }
+
+            self.write_u8(len as u8)?;
+            for byte in label.bytes() {
+                self.write_u8(byte)?;
+            }
+        }
+
+        self.write_u8(0)?;
+
+        Ok(())
     }
 }
