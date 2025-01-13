@@ -28,21 +28,21 @@ const RCODE_MASK: u16 = 0b00000000_00001111;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DnsHeader {
-    id: u16,
+    pub id: u16,
 
-    is_response: bool,
-    opcode: u8,
-    authoritative_answer: bool,
-    truncated_message: bool,
-    recursion_desired: bool,
-    recursion_available: bool,
-    z: u8,
-    result_code: ResultCode,
+    pub is_response: bool,
+    pub opcode: u8,
+    pub authoritative_answer: bool,
+    pub truncated_message: bool,
+    pub recursion_desired: bool,
+    pub recursion_available: bool,
+    pub z: u8,
+    pub result_code: ResultCode,
 
-    questions_count: u16,
-    answers_count: u16,
-    authority_records_count: u16,
-    additional_records_count: u16,
+    pub questions_count: u16,
+    pub answers_count: u16,
+    pub authority_records_count: u16,
+    pub additional_records_count: u16,
 }
 
 impl DnsHeader {
@@ -84,6 +84,27 @@ impl DnsHeader {
         self.answers_count = bufer.read_u16()?;
         self.authority_records_count = bufer.read_u16()?;
         self.additional_records_count = bufer.read_u16()?;
+
+        Ok(())
+    }
+
+    pub fn write(&mut self, bufer: &mut BytePacketBuffer) -> Result<()> {
+        let flags = ((self.is_response as u16) << 15)
+            | ((self.opcode as u16) << 11)
+            | ((self.authoritative_answer as u16) << 10)
+            | ((self.truncated_message as u16) << 9)
+            | ((self.recursion_desired as u16) << 8)
+            | ((self.recursion_desired as u16) << 7)
+            | ((self.z as u16) << 4)
+            | (self.result_code as u16);
+
+        bufer.write_u16(self.id)?;
+        bufer.write_u16(flags)?;
+
+        bufer.write_u16(self.questions_count)?;
+        bufer.write_u16(self.answers_count)?;
+        bufer.write_u16(self.authority_records_count)?;
+        bufer.write_u16(self.additional_records_count)?;
 
         Ok(())
     }
