@@ -1,0 +1,1 @@
+A simple DNS server implementation, based on [EmilHernvall dnsguide](https://github.com/EmilHernvall/dnsguide)

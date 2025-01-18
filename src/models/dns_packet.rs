@@ -1,3 +1,8 @@
+use std::net::Ipv4Addr;
+
+use rand::seq::SliceRandom;
+use rand::thread_rng;
+
 use super::{
     dns_header::DnsHeader, dns_question::DnsQuestion, dns_record::DnsRecord,
     query_class::QueryClass, query_type::QueryType,
@@ -71,5 +76,49 @@ impl DnsPacket {
         }
 
         Ok(())
+    }
+
+    pub fn get_random_a(&self) -> Option<Ipv4Addr> {
+        let a_records: Vec<Ipv4Addr> = self
+            .answers
+            .iter()
+            .filter_map(|record| match record {
+                DnsRecord::A { ip_v4_addr, .. } => Some(*ip_v4_addr),
+                _ => None,
+            })
+            .collect();
+
+        let mut rng = thread_rng();
+        a_records.choose(&mut rng).copied()
+    }
+
+    fn get_ns<'a>(&'a self, qname: &'a str) -> impl Iterator<Item = (&'a str, &'a str)> {
+        self.authorities
+            .iter()
+            .filter_map(|record| match record {
+                DnsRecord::NS { domain, host, .. } => Some((domain.as_str(), host.as_str())),
+                _ => None,
+            })
+            .filter(move |(domain, _)| qname.ends_with(*domain))
+    }
+
+    pub fn get_resolved_ns(&self, qname: &str) -> Option<Ipv4Addr> {
+        self.get_ns(qname)
+            .flat_map(|(_, host)| {
+                self.additionals
+                    .iter()
+                    .filter_map(move |record| match record {
+                        DnsRecord::A {
+                            domain, ip_v4_addr, ..
+                        } if domain == host => Some(ip_v4_addr),
+                        _ => None,
+                    })
+            })
+            .map(|addr| *addr)
+            .next()
+    }
+
+    pub fn get_unresolved_ns<'a>(&'a self, qname: &'a str) -> Option<&'a str> {
+        self.get_ns(qname).map(|(_, host)| host).next()
     }
 }
