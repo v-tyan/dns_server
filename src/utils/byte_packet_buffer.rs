@@ -170,7 +170,7 @@ impl BytePacketBuffer {
     pub fn write_qname(&mut self, qname: &String) -> Result<()> {
         for label in qname.split('.') {
             let len = label.len();
-            if (len > 63) {
+            if len > 63 {
                 return Err("Label max length of 63 exeeded".into());
             }
 
